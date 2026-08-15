@@ -41,28 +41,29 @@ for img in frontbackend caddy idehost; do
 done
 
 echo "==> Fetching frontend bundle (artifact from ${SHA})"
-RUN_ID="$(
-	curl -fsSL \
-		-H "Authorization: Bearer ${GITHUB_TOKEN}" \
-		-H "Accept: application/vnd.github+json" \
-		"https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/cd.yml/runs?branch=${SHA}&status=success&per_page=1" |
-		jq -r '.workflow_runs[0].id // empty'
-)"
+# Resolve the cd.yml run to pull from. `gh run list -c` takes a branch or SHA
+# and prints JSON, which sidesteps the REST runs endpoint's branch-only filter
+# and avoids its pagination gotchas. `gh` reads GITHUB_TOKEN automatically.
+RUN_ID="$(gh run list \
+	--repo "${GITHUB_REPOSITORY}" \
+	--workflow cd.yml \
+	--commit "${SHA}" \
+	--status success \
+	--limit 1 \
+	--json databaseId --jq '.[0].databaseId // empty')"
 [[ -n "${RUN_ID}" ]] || {
 	echo "error: no successful cd.yml run found for ${SHA}" >&2
 	exit 1
 }
 
-curl -fsSL \
-	-H "Authorization: Bearer ${GITHUB_TOKEN}" \
-	-H "Accept: application/vnd.github+json" \
-	"https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts/frontend/zip" \
-	-o /tmp/frontend.zip
+tmp_extract="$(mktemp -d)"
+trap 'rm -rf "${tmp_extract}"' EXIT
+gh run download "${RUN_ID}" \
+	--repo "${GITHUB_REPOSITORY}" \
+	--name frontend \
+	--dir "${tmp_extract}"
 
 install -d -m 0755 "${FRONTEND_DIR}"
-tmp_extract="$(mktemp -d)"
-trap 'rm -rf "${tmp_extract}" /tmp/frontend.zip' EXIT
-unzip -q -o /tmp/frontend.zip -d "${tmp_extract}"
 tar -xzf "${tmp_extract}/frontend.tar.gz" -C "${FRONTEND_DIR}"
 
 echo "==> Restarting services"
