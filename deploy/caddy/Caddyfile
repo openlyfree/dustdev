@@ -37,6 +37,11 @@ www.{$BASE_DOMAIN} {
 		}
 	}
 
+	# Capture the subdomain label into {re.subdomain.slug} (the project slug).
+	# {host.labels.*} was removed from Caddy, so a named matcher is the way to
+	# extract it.
+	@subdomain header_regexp subdomain Host ^([a-z0-9-]+)\.{$BASE_DOMAIN}$
+
 	# idehost has no auth of its own; gate every request (incl. the
 	# terminal WebSocket upgrade) on a valid session + project ownership.
 	forward_auth frontbackend:8081 {
@@ -44,8 +49,12 @@ www.{$BASE_DOMAIN} {
 		copy_headers X-Forwarded-Host
 	}
 
-	# Container network aliases equal the project slug, so the subdomain
-	# label is the dial address (resolved by podman's aardvark-dns).
-	# Stopped containers simply fail to connect -> 502.
-	reverse_proxy {host.labels.2}:8080
+	# Container network aliases equal the project slug, so the subdomain label
+	# is the dial address (resolved by podman's aardvark-dns). Rewrite Host to
+	# the slug so the upstream vhost matches; stopped containers 502.
+	handle @subdomain {
+		rewrite * {path}
+		header_up Host {re.subdomain.1}
+		reverse_proxy {re.subdomain.1}:8080
+	}
 }
