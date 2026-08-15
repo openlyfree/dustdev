@@ -23,6 +23,10 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 : "${GITHUB_REPOSITORY:?set GITHUB_REPOSITORY (e.g. openlyfree/dustdev)}"
 : "${GITHUB_TOKEN:?set GITHUB_TOKEN with read:packages scope to pull GHCR images}"
 
+# `gh` authenticates with GH_TOKEN, not GITHUB_TOKEN — export both so the
+# GitHub CLI calls below work off the same PAT.
+export GH_TOKEN="${GITHUB_TOKEN}"
+
 # Lower-cased namespace must match CD's IMAGE_NAMESPACE (ghcr.io/owner/repo-*).
 NAMESPACE="ghcr.io/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
 SHA="${1:-master}"
