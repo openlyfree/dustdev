@@ -45,18 +45,32 @@ for img in frontbackend caddy idehost; do
 done
 
 echo "==> Fetching frontend bundle (artifact from ${SHA})"
-# Resolve the cd.yml run to pull from. `gh run list -c` takes a branch or SHA
-# and prints JSON, which sidesteps the REST runs endpoint's branch-only filter
-# and avoids its pagination gotchas. `gh` reads GITHUB_TOKEN automatically.
-RUN_ID="$(gh run list \
-	--repo "${GITHUB_REPOSITORY}" \
-	--workflow cd.yml \
-	--commit "${SHA}" \
-	--status success \
-	--limit 1 \
-	--json databaseId --jq '.[0].databaseId // empty')"
+# Resolve the requested ref (branch, tag, or SHA) to a commit SHA, then find
+# the successful cd.yml run that built it. `gh run list --commit` only accepts
+# a SHA, so a branch name like "master" has to be resolved first.
+COMMIT_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${SHA}" --jq '.sha' 2>/dev/null || true)"
+RUN_ID=""
+if [[ -n "${COMMIT_SHA}" ]]; then
+	RUN_ID="$(gh run list \
+		--repo "${GITHUB_REPOSITORY}" \
+		--workflow cd.yml \
+		--commit "${COMMIT_SHA}" \
+		--status success \
+		--limit 1 \
+		--json databaseId --jq '.[0].databaseId // empty')"
+fi
+# Fall back to the latest successful run on the default branch (e.g. a push to
+# a file CD ignores still rebuilt the frontend on the previous green run).
+if [[ -z "${RUN_ID}" ]]; then
+	RUN_ID="$(gh run list \
+		--repo "${GITHUB_REPOSITORY}" \
+		--workflow cd.yml \
+		--status success \
+		--limit 1 \
+		--json databaseId --jq '.[0].databaseId // empty')"
+fi
 [[ -n "${RUN_ID}" ]] || {
-	echo "error: no successful cd.yml run found for ${SHA}" >&2
+	echo "error: no successful cd.yml run found" >&2
 	exit 1
 }
 
