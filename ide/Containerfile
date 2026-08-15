@@ -21,7 +21,7 @@ RUN mkdir -p /etc/nix \
 
 COPY flake.nix flake.lock /opt/ide/
 WORKDIR /opt/ide
-RUN nix build .#ide-runtime --out-link /runtime
+RUN nix build .#idehost-runtime --out-link /runtime
 
 ENV PATH="/usr/local/bin:/runtime/bin:${PATH}" \
 	SSL_CERT_FILE=/runtime/etc/ssl/certs/ca-bundle.crt \
