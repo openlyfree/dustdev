@@ -8,6 +8,11 @@ Image=ghcr.io/openlyfree/dustdev-frontbackend:latest
 Network=dustdev.network
 EnvironmentFile=/etc/dustdev/dustdev.env
 # Rootful podman socket: the API creates/starts/stops devcontainers on the host.
+# Run as root and keep the container in the host's SELinux context so it can
+# actually connect to the rootful socket (rootless/SELinux-confined containers
+# get EACCES on connect even when the socket is 0666).
+User=0
+SecurityLabelDisable=true
 Volume=/run/podman/podman.sock:/run/podman/podman.sock
 
 [Service]
