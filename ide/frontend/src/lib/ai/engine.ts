@@ -70,10 +70,7 @@ export async function initModel(modelId: string): Promise<void> {
 	}
 }
 
-export async function* streamChat(
-	messages: ChatCompletionMessageParam[],
-	options: { temperature?: number } = {}
-): AsyncGenerator<string> {
+export async function* streamChat(messages: ChatCompletionMessageParam[]): AsyncGenerator<string> {
 	if (!engine || get(aiStatus) !== 'ready') {
 		throw new Error('Model is not loaded yet');
 	}
@@ -81,7 +78,7 @@ export async function* streamChat(
 	const completion = await engine.chat.completions.create({
 		messages,
 		stream: true,
-		temperature: options.temperature ?? 0.7
+		temperature: 0.7
 	});
 
 	for await (const chunk of completion) {

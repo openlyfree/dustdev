@@ -55,7 +55,7 @@ func shouldIgnorePath(relPath string) bool {
 	parts := strings.Split(filepath.ToSlash(relPath), "/")
 	for _, part := range parts {
 		switch part {
-		case ".git", ".svelte-kit":
+		case ".git", "node_modules", ".svelte-kit":
 			return true
 		}
 		if strings.HasSuffix(part, ".swp") || strings.HasSuffix(part, "~") {

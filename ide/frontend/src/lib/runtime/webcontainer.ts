@@ -115,32 +115,6 @@ export async function deleteFromWebContainer(path: string): Promise<void> {
 	}
 }
 
-export async function runInWebContainer(
-	command: string
-): Promise<{ output: string; exitCode: number }> {
-	const wc = await getWebContainer();
-	if (!mounted) {
-		await mountOPFSToWebContainer();
-	}
-
-	const process = await wc.spawn('jsh', ['-c', command]);
-
-	let output = '';
-	const collecting = process.output.pipeTo(
-		new WritableStream<string>({
-			write: (chunk) => {
-				output += chunk;
-			}
-		})
-	);
-
-	const exitCode = await process.exit;
-	await collecting.catch(() => {
-		// Stream already closed when the process exits
-	});
-	return { output, exitCode };
-}
-
 export async function spawnWebContainerShell(
 	cols: number,
 	rows: number
