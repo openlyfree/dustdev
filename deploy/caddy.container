@@ -1,0 +1,23 @@
+[Unit]
+Description=dustdev edge proxy (Caddy with Porkbun DNS for wildcard TLS)
+After=dustdev-network.service frontbackend.service
+
+[Container]
+ContainerName=caddy
+Image=ghcr.io/ethan/code-az-caddy:latest
+Network=dustdev.network
+EnvironmentFile=/etc/dustdev/dustdev.env
+PublishPort=80:80
+PublishPort=443:443
+PublishPort=443:443/udp
+Volume=/etc/dustdev/Caddyfile:/etc/caddy/Caddyfile:ro,Z
+Volume=/opt/dustdev/frontend:/srv/frontend:ro,Z
+Volume=dustdev-caddy-data:/data
+Volume=dustdev-caddy-config:/config
+
+[Service]
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

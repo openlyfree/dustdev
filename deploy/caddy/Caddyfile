@@ -1,0 +1,51 @@
+{
+	email {$ACME_EMAIL}
+}
+
+# ── Apex: landing page, dashboard SPA, and the platform API ──────────────
+{$BASE_DOMAIN} {
+	root * /srv/frontend
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	handle /api/* {
+		reverse_proxy frontbackend:8081
+	}
+
+	handle {
+		# SPA fallback: unknown paths render the client-side app
+		try_files {path} /200.html
+		file_server
+	}
+}
+
+www.{$BASE_DOMAIN} {
+	redir https://{$BASE_DOMAIN}{uri} permanent
+}
+
+# ── Wildcard: one devcontainer per subdomain ─────────────────────────────
+*.{$BASE_DOMAIN} {
+	tls {
+		dns porkbun {
+			api_key {$PORKBUN_API_KEY}
+			api_secret_key {$PORKBUN_SECRET_KEY}
+		}
+	}
+
+	# idehost has no auth of its own; gate every request (incl. the
+	# terminal WebSocket upgrade) on a valid session + project ownership.
+	forward_auth frontbackend:8081 {
+		uri /api/authz
+		copy_headers X-Forwarded-Host
+	}
+
+	# Container network aliases equal the project slug, so the subdomain
+	# label is the dial address (resolved by podman's aardvark-dns).
+	# Stopped containers simply fail to connect -> 502.
+	reverse_proxy {host.labels.2}:8080
+}

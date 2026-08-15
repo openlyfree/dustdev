@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# SvelteKit / build output
+.svelte-kit/
+frontfrontend/build/
+ide/frontend/build/
+ide/backend/dist/
+ide/bin/
+bin/
+
+# Env / secrets
+.env
+*.local
+/etc/dustdev/
+
+# Large binaries / models
+*.gguf
+frontbackend/dustdev-frontbackend
+

@@ -1,0 +1,18 @@
+[Unit]
+Description=dustdev platform API (auth, projects, podman orchestration)
+After=dustdev-network.service postgres.service
+
+[Container]
+ContainerName=frontbackend
+Image=ghcr.io/ethan/code-az-frontbackend:latest
+Network=dustdev.network
+EnvironmentFile=/etc/dustdev/dustdev.env
+# Rootful podman socket: the API creates/starts/stops devcontainers on the host.
+Volume=/run/podman/podman.sock:/run/podman/podman.sock
+
+[Service]
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

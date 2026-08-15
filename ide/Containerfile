@@ -1,0 +1,43 @@
+# syntax=docker/dockerfile:1
+
+FROM docker.io/oven/bun:1 AS frontend
+WORKDIR /app
+COPY frontend/package.json frontend/bun.lock* ./
+RUN bun install --frozen-lockfile || bun install
+COPY frontend/ ./
+RUN bun run build
+
+FROM docker.io/library/golang:1.26-bookworm AS backend
+WORKDIR /src
+COPY backend/go.mod backend/go.sum ./
+RUN go mod download
+COPY backend/ ./
+COPY --from=frontend /app/build ./dist
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /ide .
+
+FROM docker.io/nixos/nix:2.28.2 AS runtime
+RUN mkdir -p /etc/nix \
+	&& printf 'experimental-features = nix-command flakes\n' >> /etc/nix/nix.conf
+
+COPY flake.nix flake.lock /opt/ide/
+WORKDIR /opt/ide
+RUN nix build .#ide-runtime --out-link /runtime
+
+ENV PATH="/usr/local/bin:/runtime/bin:${PATH}" \
+	SSL_CERT_FILE=/runtime/etc/ssl/certs/ca-bundle.crt \
+	SHELL=/runtime/bin/bash
+
+COPY --from=backend /ide /usr/local/bin/ide
+
+WORKDIR /workspace
+VOLUME /workspace
+EXPOSE 8080
+
+ENV PROJECT_DIR=/workspace \
+	PORT=8080 \
+	GIN_MODE=release
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+	CMD ["/bin/sh", "-c", "wget -qO- http://127.0.0.1:8080/healthz || exit 1"]
+
+ENTRYPOINT ["/usr/local/bin/ide"]

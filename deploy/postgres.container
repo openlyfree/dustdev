@@ -1,0 +1,17 @@
+[Unit]
+Description=dustdev Postgres
+After=dustdev-network.service
+
+[Container]
+ContainerName=postgres
+Image=docker.io/library/postgres:18-alpine
+Network=dustdev.network
+EnvironmentFile=/etc/dustdev/dustdev.env
+Volume=dustdev-pgdata:/var/lib/postgresql
+
+[Service]
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

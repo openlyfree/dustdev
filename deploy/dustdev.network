@@ -1,0 +1,5 @@
+[Unit]
+Description=dustdev podman network (DNS-enabled bridge)
+
+[Network]
+NetworkName=dustdev
