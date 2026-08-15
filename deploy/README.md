@@ -92,7 +92,7 @@ Two GitHub Actions workflows run the pipeline:
 
 - **CI** (`.github/workflows/ci.yml`) — on every push/PR: `svelte-check`, `go
   vet`, `go test -race`, and a no-push build of all three images.
-- **CD** (`.github/workflows/cd.yml`) — on `main`: builds and pushes
+- **CD** (`.github/workflows/cd.yml`) — on `master`: builds and pushes
   `frontbackend`, `caddy`, and `idehost` to GHCR as both `production` (mutable)
   and the commit SHA, and uploads the static frontend bundle as an artifact.
 

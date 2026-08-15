@@ -1,6 +1,6 @@
 name: CD
 
-# Publish pipeline for main. Builds the three container images and pushes them
+# Publish pipeline for the default branch (master). Builds the three images and pushes them
 # to GHCR as both `production` (mutable, what the droplet runs) and the commit
 # SHA (immutable, for rollback), and produces the static frontend bundle.
 #
@@ -8,7 +8,7 @@ name: CD
 # server (see deploy/README.md).
 on:
   push:
-    branches: [main]
+    branches: [master]
   workflow_dispatch:
 
 concurrency:

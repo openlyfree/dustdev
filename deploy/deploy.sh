@@ -7,7 +7,7 @@
 # (pull=always on a mutable tag).
 #
 # Usage:
-#   sudo ./deploy.sh                 # deploy what's on main now
+#   sudo ./deploy.sh                 # deploy what's on the default branch now
 #   sudo ./deploy.sh <sha>           # pin frontend bundle to a commit's build
 #
 # Requires: podman, curl, jq, and GITHUB_TOKEN (a PAT with read:packages) set in
@@ -25,7 +25,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Lower-cased namespace must match CD's IMAGE_NAMESPACE (ghcr.io/owner/repo-*).
 NAMESPACE="ghcr.io/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
-SHA="${1:-main}"
+SHA="${1:-master}"
 TAG="production"
 FRONTEND_DIR=/opt/dustdev/frontend
 
