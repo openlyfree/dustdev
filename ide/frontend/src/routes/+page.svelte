@@ -30,7 +30,10 @@
 		if (panel === 'ai') aiVisited = true;
 	}
 
-	const fileTree = $derived(buildFileTree($files.map((f) => f.path)));
+	// node_modules syncs for offline persistence but stays out of the explorer
+	const fileTree = $derived(
+		buildFileTree($files.map((f) => f.path).filter((p) => !p.split('/').includes('node_modules')))
+	);
 
 	const statusLabel = $derived(
 		$isConnected ? 'Online' : $webContainerReady ? 'Offline (WebContainer)' : 'Offline'
@@ -252,9 +255,8 @@
 								: 'hover:bg-muted/50 hover:text-foreground'}"
 							onclick={() => switchBottomPanel('ai')}
 						>
-							AI
-							<span class="ml-1 font-normal normal-case">(local)</span>
-						</button>
+						AI
+					</button>
 					</div>
 					<div class="min-h-0 flex-1">
 						{#if bottomPanel === 'terminal'}

@@ -30,6 +30,7 @@ func main() {
 	registerPreviewRoutes(router)
 	router.GET("/term", termSync)
 	router.GET("/file", fileSync)
+	router.POST("/exec", execSync)
 	registerStaticRoutes(router, staticFS)
 
 	port := os.Getenv("PORT")

@@ -1,6 +1,15 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
-	import { Bot, RotateCcw, Send } from '@lucide/svelte';
+	import {
+		Bot,
+		FilePen,
+		FileText,
+		List,
+		RotateCcw,
+		Send,
+		SquareTerminal,
+		Wrench
+	} from '@lucide/svelte';
 	import type { ChatCompletionMessageParam } from '@mlc-ai/web-llm';
 	import {
 		AI_MODELS,
@@ -11,13 +20,16 @@
 		hasWebGPU,
 		initModel,
 		loadedModel,
-		resetAiChat,
-		streamChat
+		resetAiChat
 	} from '$lib/ai/engine';
+	import { runAgent } from '$lib/ai/agent';
 	import { activeFile, files } from '$lib/workspace/files';
 	import { decodeFileContent, isBinaryPath, isTextContent } from '$lib/utils/language';
 
-	type ChatMessage = { role: 'user' | 'assistant'; content: string };
+	type ToolActivity = { name: string; summary: string; ok: boolean; detail: string };
+	type ChatMessage =
+		| { role: 'user' | 'assistant'; content: string }
+		| { role: 'tool'; tool: ToolActivity };
 
 	const MAX_FILE_CONTEXT = 3000;
 	const MAX_HISTORY = 10;
@@ -47,22 +59,26 @@
 		}
 	});
 
-	function buildRequestMessages(): ChatCompletionMessageParam[] {
-		const systemParts = [
-			'You are a coding assistant running fully offline in a browser IDE. Keep answers concise and use code blocks for code.'
+	function buildSystemPrompt(): string {
+		const parts = [
+			'You are a coding assistant in a web IDE. You can read and edit files and run commands in the workspace using tools. Keep answers concise and use code blocks for code.'
 		];
 		if (attachedFileContext) {
-			systemParts.push(
+			parts.push(
 				`The user has this file open (${attachedFileContext.path}):\n\n${attachedFileContext.text}`
 			);
 		}
+		return parts.join('\n\n');
+	}
 
-		const history = messages.slice(-MAX_HISTORY).map<ChatCompletionMessageParam>((m) => ({
-			role: m.role,
-			content: m.content
-		}));
-
-		return [{ role: 'system', content: systemParts.join('\n\n') }, ...history];
+	function buildHistory(): ChatCompletionMessageParam[] {
+		return messages
+			.filter(
+				(m): m is { role: 'user' | 'assistant'; content: string } =>
+					(m.role === 'user' || m.role === 'assistant') && m.content.trim().length > 0
+			)
+			.slice(-MAX_HISTORY)
+			.map((m) => ({ role: m.role, content: m.content }));
 	}
 
 	async function scrollToBottom() {
@@ -72,28 +88,66 @@
 		}
 	}
 
+	function lastAssistant(): (ChatMessage & { role: 'assistant' }) | null {
+		const last = messages[messages.length - 1];
+		return last?.role === 'assistant' ? (last as ChatMessage & { role: 'assistant' }) : null;
+	}
+
 	async function send() {
 		const text = input.trim();
 		if (!text || generating || $aiStatus !== 'ready') return;
 
 		input = '';
 		messages.push({ role: 'user', content: text });
-		const request = buildRequestMessages();
-		messages.push({ role: 'assistant', content: '' });
+		const systemPrompt = buildSystemPrompt();
+		const history = buildHistory();
 		generating = true;
 		await scrollToBottom();
 
 		try {
-			for await (const delta of streamChat(request)) {
-				messages[messages.length - 1].content += delta;
+			for await (const event of runAgent(text, history, systemPrompt)) {
+				if (event.type === 'step_start') {
+					messages.push({ role: 'assistant', content: '' });
+				} else if (event.type === 'delta') {
+					const assistant = lastAssistant();
+					if (assistant && event.visible) assistant.content += event.text;
+				} else if (event.type === 'step_end') {
+					if (event.toolCall || messages.at(-1)?.role === 'assistant') {
+						const assistant = lastAssistant();
+						if (assistant && event.toolCall) {
+							const marker = assistant.content.indexOf('TOOL:');
+							if (marker >= 0) assistant.content = assistant.content.slice(0, marker).trimEnd();
+							// Drop bubbles that only contained the tool call
+							if (!assistant.content.trim()) messages.pop();
+						}
+					}
+				} else if (event.type === 'tool') {
+					messages.push({
+						role: 'tool',
+						tool: {
+							name: event.call.name,
+							summary: event.result.summary,
+							ok: event.result.ok,
+							detail: event.result.output
+						}
+					});
+				}
 				void scrollToBottom();
 			}
 		} catch (error) {
-			messages[messages.length - 1].content =
-				`Error: ${error instanceof Error ? error.message : 'generation failed'}`;
-		} finally {
-			generating = false;
+			const message = `Error: ${error instanceof Error ? error.message : 'generation failed'}`;
+			const assistant = lastAssistant();
+			if (assistant && !assistant.content.trim()) {
+				assistant.content = message;
+			} else {
+				messages.push({ role: 'assistant', content: message });
+			}
 		}
+
+		const tail = lastAssistant();
+		if (tail && !tail.content.trim()) messages.pop();
+		generating = false;
+		void scrollToBottom();
 	}
 
 	async function newChat() {
@@ -119,7 +173,7 @@
 			{#if $aiStatus === 'ready'}
 				<span class="flex items-center gap-1.5 text-[10px] text-muted-foreground">
 					<span class="size-1.5 rounded-full bg-green-500"></span>
-					{$loadedModel} — runs locally
+					{$loadedModel}
 				</span>
 			{:else if $aiStatus === 'unsupported'}
 				<span class="text-[10px] text-red-400">WebGPU is not available in this browser</span>
@@ -145,9 +199,6 @@
 				>
 					Load model
 				</button>
-				<span class="hidden text-[10px] text-muted-foreground sm:inline">
-					Downloads once, then works offline
-				</span>
 			{/if}
 		</div>
 		{#if messages.length > 0}
@@ -179,27 +230,51 @@
 			>
 				<p>
 					{#if $aiStatus === 'ready'}
-						Ask anything — the model runs on your GPU, no network needed.
+						Ask anything — it can read and edit files and run commands.
 					{:else}
-						Load a model above to chat with a local AI.<br />
-						Weights are cached in the browser, so it keeps working offline.
+						Load a model above to start chatting.
 					{/if}
 				</p>
 			</div>
 		{:else}
 			{#each messages as message, i (i)}
-				<div class="flex {message.role === 'user' ? 'justify-end' : 'justify-start'}">
-					<div
-						class="max-w-[85%] rounded-lg px-3 py-1.5 text-xs leading-relaxed break-words whitespace-pre-wrap {message.role ===
-						'user'
-							? 'bg-primary text-primary-foreground'
-							: 'bg-muted text-foreground'}"
-					>
-						{message.content}{#if generating && i === messages.length - 1 && message.role === 'assistant'}<span
-								class="inline-block h-3 w-1 animate-pulse bg-current align-text-bottom"
-							></span>{/if}
+				{#if message.role === 'tool'}
+					<div class="flex justify-start">
+						<div
+							class="flex max-w-[85%] items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 font-mono text-[10px] text-muted-foreground"
+							title={message.tool.detail}
+						>
+							{#if message.tool.name === 'run_command'}
+								<SquareTerminal class="size-3 shrink-0" />
+							{:else if message.tool.name === 'write_file'}
+								<FilePen class="size-3 shrink-0" />
+							{:else if message.tool.name === 'read_file'}
+								<FileText class="size-3 shrink-0" />
+							{:else if message.tool.name === 'list_files'}
+								<List class="size-3 shrink-0" />
+							{:else}
+								<Wrench class="size-3 shrink-0" />
+							{/if}
+							<span class="truncate">{message.tool.summary}</span>
+							<span class={message.tool.ok ? 'text-green-500' : 'text-red-400'}>
+								{message.tool.ok ? '✓' : '✗'}
+							</span>
+						</div>
 					</div>
-				</div>
+				{:else}
+					<div class="flex {message.role === 'user' ? 'justify-end' : 'justify-start'}">
+						<div
+							class="max-w-[85%] rounded-lg px-3 py-1.5 text-xs leading-relaxed break-words whitespace-pre-wrap {message.role ===
+							'user'
+								? 'bg-primary text-primary-foreground'
+								: 'bg-muted text-foreground'}"
+						>
+							{message.content}{#if generating && i === messages.length - 1 && message.role === 'assistant'}<span
+									class="inline-block h-3 w-1 animate-pulse bg-current align-text-bottom"
+								></span>{/if}
+						</div>
+					</div>
+				{/if}
 			{/each}
 		{/if}
 	</div>
@@ -214,7 +289,7 @@
 			<textarea
 				bind:value={input}
 				onkeydown={handleKeydown}
-				placeholder={$aiStatus === 'ready' ? 'Ask the local model…' : 'Load a model first…'}
+				placeholder={$aiStatus === 'ready' ? 'Ask anything…' : 'Load a model first…'}
 				disabled={$aiStatus !== 'ready'}
 				rows="2"
 				class="min-h-9 flex-1 resize-none rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-ring focus:outline-none disabled:opacity-50"

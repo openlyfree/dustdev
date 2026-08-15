@@ -17,4 +17,5 @@ bin/
 # Large binaries / models
 *.gguf
 frontbackend/dustdev-frontbackend
+ide/backend/dustdev-backend
 
