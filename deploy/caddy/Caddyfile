@@ -50,11 +50,11 @@ www.{$BASE_DOMAIN} {
 	}
 
 	# Container network aliases equal the project slug, so the subdomain label
-	# is the dial address (resolved by podman's aardvark-dns). Rewrite Host to
-	# the slug so the upstream vhost matches; stopped containers 502.
+	# is the dial address (resolved by podman's aardvark-dns). header_up sets
+	# the Host the upstream sees; stopped containers 502.
 	handle @subdomain {
-		rewrite * {path}
-		header_up Host {re.subdomain.1}
-		reverse_proxy {re.subdomain.1}:8080
+		reverse_proxy {re.subdomain.1}:8080 {
+			header_up Host {re.subdomain.1}
+		}
 	}
 }
