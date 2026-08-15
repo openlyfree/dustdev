@@ -14,7 +14,7 @@
 	let activeBackend: 'server' | 'webcontainer' | null = null;
 
 	const catppuccinMochaTheme = {
-		background: '#161723',
+		background: '#1e1e2e',
 		foreground: '#cdd6f4',
 		cursor: '#cba6f7',
 		selectionBackground: '#585b70',

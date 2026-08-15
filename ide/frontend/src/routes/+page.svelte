@@ -128,10 +128,10 @@
 							<span class="flex items-center gap-1.5 text-[10px] text-muted-foreground">
 								<span
 									class="size-1.5 rounded-full {$isConnected
-										? 'bg-green-500'
+										? 'bg-green-400'
 										: $webContainerReady
-											? 'bg-amber-500'
-											: 'bg-red-500'}"
+											? 'bg-amber-400'
+											: 'bg-red-400'}"
 								></span>
 								{statusLabel}
 							</span>
@@ -216,14 +216,14 @@
 					class="relative flex h-full w-full flex-col overflow-hidden"
 				>
 					<div
-						class="flex items-center gap-2 border-b border-border bg-muted/40 px-4 py-1.5 text-xs text-muted-foreground"
+						class="flex items-center gap-1 border-b border-border bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground"
 					>
 						<button
 							type="button"
-							class="font-semibold tracking-wider uppercase transition-colors {bottomPanel ===
+							class="rounded-md px-2 py-0.5 font-semibold tracking-wider uppercase transition-colors {bottomPanel ===
 							'terminal'
-								? 'text-foreground'
-								: 'hover:text-foreground'}"
+								? 'bg-muted text-foreground'
+								: 'hover:bg-muted/50 hover:text-foreground'}"
 							onclick={() => switchBottomPanel('terminal')}
 						>
 							Terminal
@@ -233,10 +233,10 @@
 						</button>
 						<button
 							type="button"
-							class="font-semibold tracking-wider uppercase transition-colors {bottomPanel ===
+							class="rounded-md px-2 py-0.5 font-semibold tracking-wider uppercase transition-colors {bottomPanel ===
 							'preview'
-								? 'text-foreground'
-								: 'hover:text-foreground'}"
+								? 'bg-muted text-foreground'
+								: 'hover:bg-muted/50 hover:text-foreground'}"
 							onclick={() => switchBottomPanel('preview')}
 						>
 							Preview
@@ -246,9 +246,10 @@
 						</button>
 						<button
 							type="button"
-							class="font-semibold tracking-wider uppercase transition-colors {bottomPanel === 'ai'
-								? 'text-foreground'
-								: 'hover:text-foreground'}"
+							class="rounded-md px-2 py-0.5 font-semibold tracking-wider uppercase transition-colors {bottomPanel ===
+							'ai'
+								? 'bg-muted text-foreground'
+								: 'hover:bg-muted/50 hover:text-foreground'}"
 							onclick={() => switchBottomPanel('ai')}
 						>
 							AI
