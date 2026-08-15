@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -8,6 +9,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 )
+
+// touchProjectActivity bumps the idle clock for a project. Best-effort: a
+// failed update only risks an inaccurate idle timestamp, so errors are logged
+// by the caller's context, not surfaced to the request.
+func (s *server) touchProjectActivity(ctx context.Context, slug string) {
+	_, _ = s.db.Pool.Exec(ctx,
+		"UPDATE projects SET last_activity = now() WHERE slug = $1", slug)
+}
 
 // authz is the Caddy forward_auth endpoint guarding *.BASE_DOMAIN requests
 // (idehost itself has no authentication). Caddy copies the original request
@@ -58,6 +67,9 @@ func (s *server) authz(c *gin.Context) {
 		c.Status(http.StatusForbidden)
 		return
 	}
+
+	// Any proxied IDE request counts as activity; reset the idle clock.
+	s.touchProjectActivity(c.Request.Context(), slug)
 
 	c.Status(http.StatusNoContent)
 }

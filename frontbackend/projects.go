@@ -180,6 +180,9 @@ func (s *server) startProject(c *gin.Context) {
 		}
 		s.setProjectStatus(c, p.ID, "running")
 		p.Status = "running"
+		// Fresh start counts as activity so the idle reaper doesn't immediately
+		// reap a container that was just booted.
+		s.touchProjectActivity(c.Request.Context(), p.Slug)
 	}
 
 	p.URL = s.projectURL(p.Slug)

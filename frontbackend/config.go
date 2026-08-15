@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type config struct {
@@ -22,6 +23,9 @@ type config struct {
 	ContainerMemMB int64
 	ContainerCPUs  float64
 	SessionTTLDays int
+	// IdleTimeout is how long a running container may go without any IDE
+	// traffic before the reaper stops it. Zero disables auto-shutdown.
+	IdleTimeout time.Duration
 }
 
 func envStr(key, def string) string {
@@ -102,6 +106,7 @@ func loadConfig() config {
 		ContainerMemMB: envInt64("CONTAINER_MEMORY_MB", 2048),
 		ContainerCPUs:  envFloat("CONTAINER_CPUS", 2),
 		SessionTTLDays: envInt("SESSION_TTL_DAYS", 30),
+		IdleTimeout:    time.Duration(envInt("IDLE_TIMEOUT_MINUTES", 10)) * time.Minute,
 	}
 
 	if cfg.DatabaseURL == "" {

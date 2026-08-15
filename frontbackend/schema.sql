@@ -21,7 +21,11 @@ CREATE TABLE IF NOT EXISTS projects (
 	name TEXT NOT NULL,
 	slug TEXT NOT NULL UNIQUE,
 	status TEXT NOT NULL DEFAULT 'stopped',
-	created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+	created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+	last_activity TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS projects_owner_id_idx ON projects (owner_id);
+
+-- Existing databases: add the column the first time this version boots.
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS last_activity TIMESTAMPTZ NOT NULL DEFAULT now();
