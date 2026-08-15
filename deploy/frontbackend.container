@@ -4,7 +4,7 @@ After=dustdev-network.service postgres.service
 
 [Container]
 ContainerName=frontbackend
-Image=ghcr.io/ethan/code-az-frontbackend:latest
+Image=ghcr.io/openlyfree/dustdev-frontbackend:latest
 Network=dustdev.network
 EnvironmentFile=/etc/dustdev/dustdev.env
 # Rootful podman socket: the API creates/starts/stops devcontainers on the host.

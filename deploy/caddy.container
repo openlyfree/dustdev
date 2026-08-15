@@ -4,7 +4,7 @@ After=dustdev-network.service frontbackend.service
 
 [Container]
 ContainerName=caddy
-Image=ghcr.io/ethan/code-az-caddy:latest
+Image=ghcr.io/openlyfree/dustdev-caddy:latest
 Network=dustdev.network
 EnvironmentFile=/etc/dustdev/dustdev.env
 PublishPort=80:80

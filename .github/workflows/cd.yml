@@ -17,7 +17,7 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  # e.g. ghcr.io/ethan/code-az (lower-cased; GHCR forbids uppercase)
+  # e.g. ghcr.io/openlyfree/dustdev (lower-cased; GHCR forbids uppercase)
   IMAGE_NAMESPACE: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}
   GO_VERSION: "1.26"
 

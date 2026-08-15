@@ -74,7 +74,7 @@ func defaultIDEImage() string {
 	if repo := os.Getenv("GITHUB_REPOSITORY"); repo != "" {
 		return "ghcr.io/" + strings.ToLower(repo) + "-idehost:production"
 	}
-	return "ghcr.io/ethan/code-az-idehost:production"
+	return "ghcr.io/openlyfree/dustdev-idehost:production"
 }
 
 func loadConfig() config {

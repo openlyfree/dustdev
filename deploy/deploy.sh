@@ -20,7 +20,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck disable=SC1091
 [[ -f /etc/dustdev/github.env ]] && source /etc/dustdev/github.env
 
-: "${GITHUB_REPOSITORY:?set GITHUB_REPOSITORY (e.g. ethan/code-az)}"
+: "${GITHUB_REPOSITORY:?set GITHUB_REPOSITORY (e.g. openlyfree/dustdev)}"
 : "${GITHUB_TOKEN:?set GITHUB_TOKEN with read:packages scope to pull GHCR images}"
 
 # Lower-cased namespace must match CD's IMAGE_NAMESPACE (ghcr.io/owner/repo-*).
